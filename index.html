@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazing Attention</title>
+  <script src="https://cdn.jsdelivr.net/gh/kirakiray/ofa.js/dist/ofa.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/kirakiray/ofa.js/libs/scsr/dist/scsr.min.js"></script>
+  <script src="https://unpkg.com/mathjs"></script>
+  <script src="https://unpkg.com/d3-regression@1.3.10/dist/d3-regression.min.js"></script>
+  <script src="https://unpkg.com/fraction.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+  <link rel="stylesheet" href="./public.css">
+</head>
+<body>
+  <o-app>
+    <template page>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+      <link rel="stylesheet" href="./public.css">
+      <header>
+        <h1>我去，兄弟你注意力惊人啊！</h1>
+      </header>
+      <main>
+        <div>
+          <h2>你是说你看到有一个规律数列为</h2>
+          <input placeholder="1, 3, 5, 2, 4, ?" sync:value="sequence" />
+          <h2>然后你一眼<span style="color: red;">注意到</span>未填项是</h2>
+          <input placeholder="114514" sync:value="answer" />
+        </div>
+        <div>
+          <h2>然后告诉我公式是</h2>
+          <textarea disabled sync:value="formula" style="width: 100%;resize: none;"></textarea>
+          <div id="KaTex" style="height: max-content;"></div>
+        </div>
+        <div>
+          <h2>我去，我帮你算了下，居然都是对的，你太牛了兄弟</h2>
+          <ul>
+            <x-fill :value="verification">
+              <li>{{$data}}</li>
+            </x-fill>
+          </ul>
+        </div>
+      </main>
+      <footer>
+        <a href="https://github.com/cyb233/amazing-attention"><img src="https://img.shields.io/github/stars/cyb233/amazing-attention.svg?style=social&label=Star&maxAge=2592000" alt="GitHub stars"></a>
+      </footer>
+      <script>
+        export default {
+          data: {
+            sequence: '1, 3, 5, 2, 4, ?',
+            answer: '114514',
+            realSequence: [],
+            formula: '',
+            verification: [],
+          },
+          watch: {
+            sequence(newVal) {
+              this.organizeInput(newVal, this.answer);
+            },
+            answer(newVal) {
+              this.organizeInput(this.sequence, newVal);
+            }
+          },
+          proto: {
+            // 整理输入
+            organizeInput(sequence = this.sequence, answer = this.answer) {
+              const order = sequence.replace(/，/g, ',').replace(/？/g, '?').split(',').map(s => s.trim());
+              if (parseInt(answer.trim())) {
+                if (order.includes('?')) {
+                  const index = order.indexOf('?');
+                  order[index] = answer;
+                } else {
+                  order.push(answer);
+                }
+              }
+              this.realSequence = order.map((s, i) => { return { x: i + 1, y: parseInt(s.trim()) } });
+              console.log(this.realSequence);
+
+              this.calculateResult();
+            },
+            // 计算结果
+            calculateResult(realSequence = this.realSequence) {
+              if (realSequence.length === 0 || realSequence.some(r => isNaN(r.y))) return;
+
+              let order = 0;
+              let model
+              while (true) {
+                // 构造回归器
+                const regression = d3.regressionPoly()
+                  .x(d => d.x)
+                  .y(d => d.y)
+                  .order(order);
+                // 计算结果
+                model = regression(realSequence);
+                console.log(order, model.rSquared);
+                if (model.rSquared === 1) break;
+                order++;
+                if (order > 100) break;
+              }
+              const coeffs = model.coefficients; // 浮点数系数，降幂排列
+              const fracCoeffs = coeffs.map(c => new Fraction(c).toFraction(false)).reverse(); // 分数形式系数，升幂排列
+              console.log('拟合系数(浮点):', coeffs);
+              console.log('拟合系数(分数):', fracCoeffs);
+
+              // 构造 f(x) 字符串（分数形式）
+              let fxStr = "f(x) = ";
+              fracCoeffs.forEach((coeff, i) => {
+                const power = order - i;
+                if (coeff === "0" || coeff === "-0") return;
+                if (i > 0 && !coeff.startsWith("-")) fxStr += " + ";
+                fxStr += coeff;
+                if (power > 0) {
+                  fxStr += "*x";
+                  if (power > 1) fxStr += "^" + power;
+                }
+              });
+
+              console.log(fxStr);
+
+              this.formula = fxStr;
+              console.log('最终拟合结果:', model, realSequence);
+              this.verification = realSequence.map(r => {
+                return `f(${r.x}) = ${model.predict(r.x).toFixed()}`
+              });
+
+              const tex = math.parse(fxStr).toTex({ notation: 'fixed' });
+              console.log(tex);
+              katex.render(tex, this.shadow.$('#KaTex').ele);
+            },
+          },
+        };
+      </script>
+    </template>
+  </o-app>
+</body>
+</html>

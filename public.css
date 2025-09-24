@@ -1,0 +1,46 @@
+*:not(.katex, .katex *) {
+  text-align: center;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+body {
+  width: 100vw;
+  height: 100vh;
+}
+
+header,
+footer {
+  height: 56px;
+  width: 100vw;
+}
+
+main {
+  min-height: calc(100vh - 112px);
+  height: max-content;
+  width: 100vw;
+}
+
+.katex-display {
+  overflow: auto hidden;
+}
+
+/* 隐藏所有滚动条但不影响滚动 */
+html,
+body,
+* {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+  /* Chrome/Safari/Opera */
+  width: 0;
+  height: 0;
+  background: transparent;
+}
