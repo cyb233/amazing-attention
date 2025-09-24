@@ -17,33 +17,33 @@
     <template page>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
       <link rel="stylesheet" href="./public.css">
-      <header>
-        <h1>我去，兄弟你注意力惊人啊！</h1>
-      </header>
-      <main>
-        <div>
-          <h2>你是说你看到有一个规律数列为</h2>
-          <input placeholder="1, 3, 5, 2, 4, ?" sync:value="sequence" />
-          <h2>然后你一眼<span style="color: red;">注意到</span>未填项是</h2>
-          <input placeholder="114514" sync:value="answer" />
-        </div>
-        <div>
-          <h2>然后告诉我公式是</h2>
-          <textarea disabled sync:value="formula" style="width: 100%;resize: none;"></textarea>
-          <div id="KaTex" style="height: max-content;"></div>
-        </div>
-        <div>
-          <h2>我去，我帮你算了下，居然都是对的，你太牛了兄弟</h2>
-          <ul>
+      <div style="min-height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 20px 10px; box-sizing: border-box;">
+        <header>
+          <h1>我去，兄弟你真的是<span style="color: red; font-weight: bold;">注意力惊人</span>啊！</h1>
+        </header>
+        <main>
+          <div>
+            <h2>你是说你看到有一个<span style="color: red; font-weight: bold;">规律数列</span>为</h2>
+            <input name="sequence" placeholder="1, 3, 5, 2, 4, ?" sync:value="sequence" required title="逗号分隔数字项，未填项填充问号，当未填项为最后一个时可省略" />
+            <h2>然后你一眼<span style="color: red; font-weight: bold;">注意到</span>未填项是</h2>
+            <input name="answer" placeholder="114514" sync:value="answer" required title="请输入未填项数字" />
+          </div>
+          <div>
+            <h2>然后告诉我<span style="color: red; font-weight: bold;">公式</span>是</h2>
+            <textarea name="formula" readonly sync:value="formula" style="width: 100%;resize: none;"></textarea>
+            <div id="KaTex" style="height: max-content;"></div>
+          </div>
+          <div>
+            <h2>我帮你算了下，居然都是对的，太牛了兄弟</h2>
             <x-fill :value="verification">
-              <li>{{$data}}</li>
+              <div>{{$data}}</div>
             </x-fill>
-          </ul>
-        </div>
-      </main>
-      <footer>
-        <a href="https://github.com/cyb233/amazing-attention"><img src="https://img.shields.io/github/stars/cyb233/amazing-attention.svg?style=social&label=Star&maxAge=0" alt="GitHub stars"></a>
-      </footer>
+          </div>
+        </main>
+        <footer>
+          <a href="https://github.com/cyb233/amazing-attention"><img src="https://img.shields.io/github/stars/cyb233/amazing-attention.svg?style=social&label=Star&maxAge=0" alt="GitHub stars"></a>
+        </footer>
+      </div>
       <script>
         export default {
           data: {
@@ -65,7 +65,7 @@
             // 整理输入
             organizeInput(sequence = this.sequence, answer = this.answer) {
               const order = sequence.replace(/，/g, ',').replace(/？/g, '?').split(',').map(s => s.trim());
-              if (parseInt(answer.trim())) {
+              if (Number(answer.trim())) {
                 if (order.includes('?')) {
                   const index = order.indexOf('?');
                   order[index] = answer;
@@ -73,7 +73,7 @@
                   order.push(answer);
                 }
               }
-              this.realSequence = order.map((s, i) => { return { x: i + 1, y: parseInt(s.trim()) } });
+              this.realSequence = order.map((s, i) => { return { x: i + 1, y: Number(s.trim()) } });
               console.log(this.realSequence);
 
               this.calculateResult();
