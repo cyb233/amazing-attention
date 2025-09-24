@@ -11,12 +11,10 @@ body {
 
 header,
 footer {
-  height: 56px;
   width: 100vw;
 }
 
 main {
-  min-height: calc(100vh - 112px);
   height: max-content;
   width: 100vw;
 }
