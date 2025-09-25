@@ -23,6 +23,10 @@ footer {
   overflow: auto hidden;
 }
 
+.tooltip {
+  --balloon-color: white;
+}
+
 /* 隐藏所有滚动条但不影响滚动 */
 html,
 body,

@@ -15,6 +15,7 @@
 <body>
   <o-app>
     <template page>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/balloon-css@1.2.0/balloon.min.css">
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
       <link rel="stylesheet" href="./public.css">
       <div style="min-height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 20px 10px; box-sizing: border-box;">
@@ -22,15 +23,45 @@
           <h1>我去，兄弟你真的是<span style="color: red; font-weight: bold;">注意力惊人</span>啊！</h1>
         </header>
         <main>
-          <div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button on:click="toggleManualIndex">{{ manualIndex ? '关闭' : '开启' }}手动指定数列位置</button>
             <h2>你是说你看到有一个<span style="color: red; font-weight: bold;">规律数列</span>为</h2>
-            <input name="sequence" placeholder="1, 3, 5, 2, 4, ?" sync:value="sequence" required title="逗号分隔数字项，未填项填充问号，当未填项为最后一个时可省略" />
+            <div>
+              <x-if :value="manualIndex">
+                <label for="sequence">数列</label>
+              </x-if>
+              <input name="sequence" placeholder="1, 3, 5, 2, 4, ?" sync:value="sequence" required />
+              <button aria-label="逗号分隔数字项，未填项填充问号，当未填项为最后一个时可省略" data-balloon-pos="left" data-balloon-length="medium" class="tooltip">？</button>
+            </div>
+            <x-if :value="manualIndex">
+              <div>
+                <label for="sequenceIndex">位置</label>
+                <input name="sequenceIndex" placeholder="1, 2, 3, 4, 5, 6" sync:value="sequenceIndex" required />
+                <button aria-label="填写对应位置，逗号分隔，需填写问号的位置（如有）" data-balloon-pos="left" data-balloon-length="medium" class="tooltip">？</button>
+              </div>
+            </x-if>
             <h2>然后你一眼<span style="color: red; font-weight: bold;">注意到</span>未填项是</h2>
-            <input name="answer" placeholder="114514" sync:value="answer" required title="请输入未填项数字" />
+            <div>
+              <x-if :value="manualIndex">
+                <label for="answer">未填项</label>
+              </x-if>
+              <input name="answer" placeholder="114514" sync:value="answer" required />
+              <button aria-label="请输入未填项数字" data-balloon-pos="left" data-balloon-length="medium" class="tooltip">？</button>
+            </div>
+            <x-if :value="manualIndex">
+              <div>
+                <label for="answerIndex">位置</label>
+                <input name="answerIndex" placeholder="6" sync:value="answerIndex" required />
+                <button aria-label="填写对应位置" data-balloon-pos="left" data-balloon-length="medium" class="tooltip">？</button>
+              </div>
+            </x-if>
           </div>
           <div>
             <h2>然后告诉我<span style="color: red; font-weight: bold;">公式</span>是</h2>
-            <textarea name="formula" readonly sync:value="formula" style="width: 100%;resize: none;"></textarea>
+            <textarea name="formula" readonly sync:value="formula" style="width: 100%;resize: none;"
+            aria-label="最多只计算到10次方程" data-balloon-pos="left" data-balloon-length="medium" class="tooltip"
+            ></textarea>
+            <div>R² = {{rSquared.toFixed(6)}}</div>
             <div id="KaTex" style="height: max-content;"></div>
           </div>
           <div>
@@ -47,10 +78,14 @@
       <script>
         export default {
           data: {
+            manualIndex: false,
             sequence: '1, 3, 5, 2, 4, ?',
+            sequenceIndex: '',
             answer: '114514',
+            answerIndex: '',
             realSequence: [],
             formula: '',
+            rSquared: 0,
             verification: [],
           },
           watch: {
@@ -59,24 +94,53 @@
             },
             answer(newVal) {
               this.organizeInput(this.sequence, newVal);
-            }
+            },
+            sequenceIndex(newVal) {
+              this.organizeInput(this.sequence, this.answer);
+            },
+            answerIndex(newVal) {
+              this.organizeInput(this.sequence, this.answer);
+            },
+          },
+          ready() {
+                this.debouncedCalculate = this.debounce(this.calculateResult);
           },
           proto: {
+            // 防抖
+            debounce(func, delay = 1000) {
+              let timeout;
+              return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+              };
+            },
             // 整理输入
             organizeInput(sequence = this.sequence, answer = this.answer) {
               const order = sequence.replace(/，/g, ',').replace(/？/g, '?').split(',').map(s => s.trim());
+              const index = this.manualIndex ? this.sequenceIndex.replace(/，/g, ',').split(',').map(s => Number(s.trim())) : [];
               if (Number(answer.trim())) {
                 if (order.includes('?')) {
                   const index = order.indexOf('?');
                   order[index] = answer;
+                  if (this.manualIndex) {
+                    if (order.length === index.length) {
+                      index[index] = Number(this.answerIndex.trim());
+                    }
+                  }
                 } else {
                   order.push(answer);
+                  if (this.manualIndex) {
+                    index.push(Number(this.answerIndex.trim()));
+                  }
                 }
               }
-              this.realSequence = order.map((s, i) => { return { x: i + 1, y: Number(s.trim()) } });
+              if (this.manualIndex && index.length !== order.length) {
+                console.error('数列项与下标项数量不匹配！', order, index);
+                return;
+              }
+              this.realSequence = order.map((s, i) => { return { x: this.manualIndex ? index[i] : i + 1, y: Number(s.trim()) } });
               console.log(this.realSequence);
-
-              this.calculateResult();
+              this.debouncedCalculate();
             },
             // 计算结果
             calculateResult(realSequence = this.realSequence) {
@@ -93,9 +157,11 @@
                 // 计算结果
                 model = regression(realSequence);
                 console.log(order, model.rSquared);
+                this.rSquared = model.rSquared;
+                // R²=1 或 达到10次方程时停止
                 if (model.rSquared === 1) break;
                 order++;
-                if (order > 100) break;
+                if (order > 10) break;
               }
               const coeffs = model.coefficients; // 浮点数系数，降幂排列
               const fracCoeffs = coeffs.map(c => new Fraction(c).toFraction(false)).reverse(); // 分数形式系数，升幂排列
@@ -127,6 +193,13 @@
               console.log(tex);
               katex.render(tex, this.shadow.$('#KaTex').ele);
             },
+            toggleManualIndex() {
+              this.manualIndex = !this.manualIndex;
+              if (!this.manualIndex) {
+                this.sequenceIndex = '';
+                this.answerIndex = '';
+              }
+            }
           },
         };
       </script>
